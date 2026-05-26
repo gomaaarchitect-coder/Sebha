@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Counter</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --accent:  #ff5032;
+      --dim:     #7a2010;
+      --bg1:     #110800;
+      --bg2:     #1a0900;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    body {
+      background: #0a0a0a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: 'Space Mono', monospace;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 48px;
+      padding: 60px 40px;
+    }
+
+    /* ── Count display ── */
+    #count-display {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(120px, 25vw, 220px);
+      line-height: 1;
+      color: #f0f0f0;
+      letter-spacing: -4px;
+      transition: color 0.15s ease, text-shadow 0.3s ease;
+      user-select: none;
+      text-shadow: 0 0 60px color-mix(in srgb, var(--accent) 15%, transparent);
+    }
+    #count-display.flash {
+      color: var(--accent);
+      text-shadow: 0 0 80px color-mix(in srgb, var(--accent) 60%, transparent);
+    }
+    #count-display.milestone {
+      animation: milestoneAnim 0.6s ease;
+    }
+    @keyframes milestoneAnim {
+      0%   { transform: scale(1); }
+      30%  { transform: scale(1.18); color: var(--accent); }
+      60%  { transform: scale(0.95); }
+      100% { transform: scale(1); }
+    }
+
+    /* ── Main button ── */
+    .btn-wrap { position: relative; }
+    .btn-label {
+      position: absolute;
+      top: -28px; left: 50%;
+      transform: translateX(-50%);
+      font-size: 10px;
+      letter-spacing: 5px;
+      color: #333;
+      text-transform: uppercase;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+    #count-btn {
+      width: clamp(160px, 30vw, 240px);
+      height: clamp(160px, 30vw, 240px);
+      border-radius: 50%;
+      border: 3px solid var(--accent);
+      background: #0a0a0a;
+      color: var(--accent);
+      font-family: 'Space Mono', monospace;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.1s ease, box-shadow 0.15s ease, background 0.15s ease,
+                  border-color 0.4s ease, color 0.4s ease;
+      box-shadow: 0 0 0 0 transparent;
+      outline: none;
+      overflow: hidden;
+      /* min touch target already met by size */
+    }
+    #count-btn::before {
+      content: '';
+      position: absolute; inset: 6px;
+      border-radius: 50%;
+      border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+      pointer-events: none;
+      transition: border-color 0.4s ease;
+    }
+    #count-btn:focus-visible {
+      outline: 3px solid var(--accent);
+      outline-offset: 4px;
+    }
+    #count-btn:hover {
+      box-shadow: 0 0 40px color-mix(in srgb, var(--accent) 30%, transparent),
+                  inset 0 0 30px color-mix(in srgb, var(--accent) 8%, transparent);
+      background: var(--bg1);
+    }
+    #count-btn:active {
+      transform: scale(0.93);
+      box-shadow: 0 0 80px color-mix(in srgb, var(--accent) 50%, transparent),
+                  inset 0 0 40px color-mix(in srgb, var(--accent) 15%, transparent);
+      background: var(--bg2);
+    }
+
+    /* ── Ripple ── */
+    .ripple {
+      position: absolute; border-radius: 50%;
+      background: color-mix(in srgb, var(--accent) 30%, transparent);
+      transform: scale(0);
+      animation: rippleAnim 0.5s linear;
+      pointer-events: none;
+    }
+    @keyframes rippleAnim { to { transform: scale(4); opacity: 0; } }
+
+    /* ── Tick marks ── */
+    .tick-marks {
+      display: flex; gap: 6px;
+      flex-wrap: wrap; justify-content: center;
+      max-width: 360px;
+      aria-hidden: true;
+    }
+    .tick {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #1e1e1e;
+      transition: background 0.2s ease;
+    }
+    .tick.active { background: var(--accent); }
+    .tick.group  { background: var(--dim); }
+
+    /* ── Controls ── */
+    .controls { display: flex; gap: 16px; }
+    .ctrl-btn {
+      background: none;
+      border: 1px solid #2a2a2a;
+      color: #555;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 2px;
+      padding: 10px 22px;
+      min-height: 44px;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+      text-transform: uppercase;
+    }
+    .ctrl-btn:hover  { border-color: #555; color: #aaa; }
+    .ctrl-btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+    .ctrl-btn:disabled { opacity: 0.3; cursor: default; }
+
+    /* ── Milestone banner ── */
+    #milestone-banner {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      background: var(--accent);
+      color: #0a0a0a;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 32px;
+      letter-spacing: 8px;
+      text-align: center;
+      padding: 14px;
+      transform: translateY(-100%);
+      z-index: 100;
+      pointer-events: none;
+    }
+    #milestone-banner.show {
+      animation: bannerIn 2.4s ease forwards;
+    }
+    @keyframes bannerIn {
+      0%   { transform: translateY(-100%); }
+      15%  { transform: translateY(0); }
+      75%  { transform: translateY(0); opacity: 1; }
+      100% { transform: translateY(-100%); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="milestone-banner" role="status" aria-live="assertive"></div>
+
+  <main class="container">
+    <div
+      id="count-display"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      aria-label="Count: 0"
+    >0</div>
+
+    <div class="btn-wrap">
+      <span class="btn-label" aria-hidden="true">tap or press space</span>
+      <button
+        id="count-btn"
+        aria-label="Increment counter"
+      >COUNT</button>
+    </div>
+
+    <div class="tick-marks" id="ticks" aria-hidden="true"></div>
+
+    <div class="controls">
+      <button class="ctrl-btn" id="undo-btn" disabled aria-label="Undo last count">Undo</button>
+      <button class="ctrl-btn" id="reset-btn" disabled aria-label="Reset counter">Reset</button>
+    </div>
+  </main>
+
+  <script>
+    // ── Palette ──────────────────────────────────────────────────────────────
+    const PALETTE = [
+      { accent: '#ff5032', dim: '#7a2010', bg1: '#110800', bg2: '#1a0900' },
+      { accent: '#00e5ff', dim: '#006a7a', bg1: '#001a1f', bg2: '#002530' },
+      { accent: '#a8ff3e', dim: '#4a7010', bg1: '#0a1200', bg2: '#121a00' },
+      { accent: '#ff3eaa', dim: '#7a1050', bg1: '#150010', bg2: '#1f0018' },
+      { accent: '#ffcc00', dim: '#806600', bg1: '#141000', bg2: '#1f1800' },
+      { accent: '#bf5fff', dim: '#5a1a80', bg1: '#0f0018', bg2: '#180025' },
+      { accent: '#ff7a00', dim: '#7a3000', bg1: '#130800', bg2: '#1f0f00' },
+      { accent: '#00ffb3', dim: '#007a50', bg1: '#001a10', bg2: '#002518' },
+    ];
+    let paletteIdx = 0;
+
+    function applyPalette(p) {
+      const r = document.documentElement.style;
+      r.setProperty('--accent', p.accent);
+      r.setProperty('--dim',    p.dim);
+      r.setProperty('--bg1',    p.bg1);
+      r.setProperty('--bg2',    p.bg2);
+    }
+
+    // ── State ─────────────────────────────────────────────────────────────────
+    let count = 0;
+
+    const display   = document.getElementById('count-display');
+    const btn       = document.getElementById('count-btn');
+    const undoBtn   = document.getElementById('undo-btn');
+    const resetBtn  = document.getElementById('reset-btn');
+    const ticksEl   = document.getElementById('ticks');
+    const banner    = document.getElementById('milestone-banner');
+
+    // ── Render ────────────────────────────────────────────────────────────────
+    function render() {
+      display.textContent = count;
+      display.setAttribute('aria-label', `Count: ${count}`);
+      undoBtn.disabled  = count === 0;
+      resetBtn.disabled = count === 0;
+      renderTicks();
+    }
+
+    function renderTicks() {
+      const tickCount = (count > 0 && count % 50 === 0) ? 50 : count % 50;
+      ticksEl.innerHTML = '';
+      for (let i = 0; i < 50; i++) {
+        const d = document.createElement('div');
+        if (i < tickCount) {
+          d.className = (i + 1) % 5 === 0 ? 'tick group' : 'tick active';
+        } else {
+          d.className = 'tick';
+        }
+        ticksEl.appendChild(d);
+      }
+    }
+
+    // ── Flash ─────────────────────────────────────────────────────────────────
+    let flashTimer = null;
+    function flash() {
+      display.classList.remove('flash');
+      void display.offsetWidth; // reflow to restart
+      display.classList.add('flash');
+      clearTimeout(flashTimer);
+      flashTimer = setTimeout(() => display.classList.remove('flash'), 130);
+    }
+
+    // ── Ripple ────────────────────────────────────────────────────────────────
+    function spawnRipple(e) {
+      const rect = btn.getBoundingClientRect();
+      const size = Math.max(rect.width, rect.height);
+      const x = (e?.clientX ?? rect.left + rect.width / 2) - rect.left - size / 2;
+      const y = (e?.clientY ?? rect.top + rect.height / 2) - rect.top - size / 2;
+      const el = document.createElement('span');
+      el.className = 'ripple';
+      el.style.width = el.style.height = size + 'px';
+      el.style.left  = x + 'px';
+      el.style.top   = y + 'px';
+      btn.appendChild(el);
+      setTimeout(() => el.remove(), 600);
+    }
+
+    // ── Milestone ─────────────────────────────────────────────────────────────
+    let bannerTimer = null;
+    function triggerMilestone(n) {
+      // vibrate
+      if (navigator.vibrate) navigator.vibrate([80, 40, 80, 40, 200]);
+
+      // speak
+      if ('speechSynthesis' in window) {
+        speechSynthesis.cancel();
+        const utt = new SpeechSynthesisUtterance(String(n));
+        utt.rate  = 0.85;
+        utt.pitch = 1.1;
+        speechSynthesis.speak(utt);
+      }
+
+      // number animation
+      display.classList.remove('milestone');
+      void display.offsetWidth;
+      display.classList.add('milestone');
+      setTimeout(() => display.classList.remove('milestone'), 650);
+
+      // banner
+      banner.textContent = `${n} — MILESTONE`;
+      banner.classList.remove('show');
+      void banner.offsetWidth;
+      banner.classList.add('show');
+      clearTimeout(bannerTimer);
+      bannerTimer = setTimeout(() => banner.classList.remove('show'), 2500);
+    }
+
+    // ── Increment ─────────────────────────────────────────────────────────────
+    function increment(e) {
+      count++;
+      flash();
+      spawnRipple(e);
+      render();
+      if (count % 50 === 0) triggerMilestone(count);
+    }
+
+    // ── Controls ──────────────────────────────────────────────────────────────
+    btn.addEventListener('click', increment);
+
+    undoBtn.addEventListener('click', () => {
+      if (count > 0) { count--; render(); }
+    });
+
+    resetBtn.addEventListener('click', () => {
+      if (count === 0) return;
+      count = 0;
+      paletteIdx = (paletteIdx + 1) % PALETTE.length;
+      applyPalette(PALETTE[paletteIdx]);
+      render();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' || e.code === 'Enter') {
+        if (document.activeElement === undoBtn || document.activeElement === resetBtn) return;
+        e.preventDefault();
+        increment(null);
+      }
+    });
+
+    // ── Init ──────────────────────────────────────────────────────────────────
+    applyPalette(PALETTE[0]);
+    render();
+  </script>
+</body>
+</html>
